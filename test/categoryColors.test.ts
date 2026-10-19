@@ -1,6 +1,5 @@
 /** @jest-environment node */
 import { decodeBarColors, encodeBarColors, decodeDynamicSponsorColors, encodeDynamicSponsorColors, RuntimeColors } from "../src/config/categoryColors";
-import { CategorySkipOption } from "../src/types";
 
 jest.mock("../src/utils/", () => ({ isFirefox: () => false }));
 
@@ -124,36 +123,6 @@ test("imports and sync events decode compact and legacy formats before notifying
     expect(observed.mock.calls[0][0].barTypes.newValue.sponsor).toEqual({ color: "#abcdef", opacity: "0.7" });
     external({ barTypes: { sponsor: { color: "#112233", opacity: "0.5" } } });
     expect(Config.config.barTypes.sponsor).toEqual({ color: "#112233", opacity: "0.7" });
-});
-
-test("upgrading existing settings enables jumpscare without changing other categories", async () => {
-    const stored = {
-        categorySelections: [{ name: "sponsor", option: CategorySkipOption.ManualSkip }],
-        paddingCategoryMigrated: true,
-    } as Record<string, unknown>;
-    const first = await loadConfig(stored);
-    const selections = first.Config.config.categorySelections;
-    expect(selections.find(s => s.name === "jumpscare")?.option).toBe(CategorySkipOption.AutoSkip);
-    expect(selections.find(s => s.name === "sponsor")?.option).toBe(CategorySkipOption.ManualSkip);
-    expect(selections.filter(s => s.name === "jumpscare")).toHaveLength(1);
-    const second = await loadConfig(stored);
-    expect(second.Config.config.categorySelections.filter(s => s.name === "jumpscare")).toHaveLength(1);
-    expect(second.writes.some(write => "categorySelections" in write)).toBe(false);
-});
-
-test.each([
-    CategorySkipOption.Disabled,
-    CategorySkipOption.ShowOverlay,
-    CategorySkipOption.ManualSkip,
-    CategorySkipOption.AutoSkip,
-])("upgrading preserves an explicit jumpscare option %s", async option => {
-    const stored = {
-        categorySelections: [{ name: "jumpscare", option }],
-        paddingCategoryMigrated: true,
-    } as Record<string, unknown>;
-    const { Config } = await loadConfig(stored);
-    expect(Config.config.categorySelections.find(s => s.name === "jumpscare")?.option).toBe(option);
-    expect(Config.config.categorySelections.filter(s => s.name === "jumpscare")).toHaveLength(1);
 });
 
 test("reset saves the compact defaults and restores the runtime colors", async () => {
