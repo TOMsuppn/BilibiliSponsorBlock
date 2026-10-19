@@ -17,7 +17,7 @@ import {
 import { Keybind, ProtoConfig, keybindEquals } from "./config/config";
 import { migrateServerPreferences, normalizeServerPreferences, ServerPreferences, OfficialServers } from "./config/officialServers";
 import { migrateSkipRulesRollout, SkipRulesRollout, SkipRulesNotice } from "./config/skipRulesRollout";
-import { migrateCategorySelections } from "./config/categoryConfig";
+import { migrateCategorySelections, setCategorySelection } from "./config/categoryConfig";
 import { decodeBarColors, encodeBarColors, decodeDynamicSponsorColors, encodeDynamicSponsorColors, RuntimeColors } from "./config/categoryColors";
 import { HashedValue } from "./utils/hash";
 import {
@@ -258,6 +258,13 @@ class ConfigClass extends ProtoConfig<SBConfig, SBStorage> {
 
 function migrateOldSyncFormats(config: SBConfig, initialSyncKeys: ReadonlySet<string>) {
     migrateSkipRulesRollout(config, initialSyncKeys);
+    // Existing installations already store categorySelections; enable this new category
+    // only when it is missing, without overwriting an explicit user choice.
+    if (!config.categorySelections.some(selection => selection.name === "jumpscare")) {
+        config.categorySelections = setCategorySelection(
+            config.categorySelections, "jumpscare" as Category, CategorySkipOption.AutoSkip
+        );
+    }
     migrateCategorySelections(config, CompileConfig.categoryList as Category[]);
     // Unbind key if it matches a previous one set by the user (should be ordered oldest to newest)
     const keybinds = ["skipKeybind", "startSponsorKeybind", "submitKeybind"];

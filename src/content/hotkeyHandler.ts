@@ -1,11 +1,13 @@
 import Config from "../config";
 import { Keybind, keybindEquals } from "../config/config";
+import { ChannelIDStatus } from "../types";
 import Utils from "../utils";
 import { addCleanupListener } from "../utils/cleanup";
-import { getFrameRate, getVideo } from "../utils/video";
+import { getChannelIDInfo, getFrameRate, getVideo } from "../utils/video";
 import { getContentApp } from "./app";
-import { getRuleRuntime } from "./skipRules/bridge";
+import { getRuleRuntime, isRuleEngineEnabled } from "./skipRules/bridge";
 import { contentState } from "./state";
+import { findActiveJumpscareSegment } from "./jumpscare";
 
 const utils = new Utils();
 
@@ -69,7 +71,24 @@ function hotkeyListener(e: KeyboardEvent): void {
     const openSubmissionMenuKey = Config.config.submitKeybind;
 
     if (keybindEquals(key, skipKey)) {
-        const hiddenAction = getRuleRuntime()?.toggleSkip();
+        const runtime = getRuleRuntime();
+        const selection = Config.config.categorySelections.find(category => category.name === "jumpscare");
+        const video = getVideo();
+        const canSkip = !Config.config.disableSkipping && !contentState.channelWhitelisted &&
+            !(Config.config.forceChannelCheck && getChannelIDInfo().status === ChannelIDStatus.Fetching);
+        const jumpscare = canSkip ? findActiveJumpscareSegment(
+            contentState.sponsorTimes, video?.currentTime, selection?.option,
+            segment => isRuleEngineEnabled() && !!runtime?.isExcluded(segment.UUID)
+        ) : undefined;
+        if (jumpscare) {
+            // A mute notice's regular shortcut undoes muting. Force a seek instead,
+            // including when the notice itself is hidden.
+            e.preventDefault();
+            void getContentApp().commands.execute("skip/reskip", { segment: jumpscare, forceSeek: true });
+            if (key.key === "Enter") utils.biliBiliPlayerDanmakuInputBlur();
+            return;
+        }
+        const hiddenAction = runtime?.toggleSkip();
         if (hiddenAction || contentState.activeSkipKeybindElement) {
             if (!hiddenAction) contentState.activeSkipKeybindElement.toggleSkip.call(contentState.activeSkipKeybindElement);
 
