@@ -4,7 +4,7 @@ import { getContentApp } from "../src/content/app";
 import { addHotkeyListener } from "../src/content/hotkeyHandler";
 import { getRuleRuntime, isRuleEngineEnabled } from "../src/content/skipRules/bridge";
 import { contentState } from "../src/content/state";
-import { ActionType, CategorySkipOption, ChannelIDStatus, SponsorTime } from "../src/types";
+import { ActionType, Category, CategorySkipOption, ChannelIDStatus, SponsorHideType, SponsorTime } from "../src/types";
 import { getChannelIDInfo, getVideo } from "../src/utils/video";
 
 jest.mock("../src/config", () => ({
@@ -57,7 +57,7 @@ beforeAll(() => addHotkeyListener());
 beforeEach(() => {
     jest.clearAllMocks();
     video.currentTime = 15;
-    Config.config.categorySelections = [{ name: "jumpscare", option: CategorySkipOption.AutoSkip }];
+    Config.config.categorySelections = [{ name: "jumpscare" as Category, option: CategorySkipOption.AutoSkip }];
     Config.config.disableSkipping = false;
     Config.config.forceChannelCheck = false;
     contentState.channelWhitelisted = false;
@@ -91,23 +91,23 @@ test("the shortcut never skips a jumpscare excluded by the rules engine", () => 
 test.each([
     "category disabled", "global disable", "whitelisted", "channel fetching", "hidden segment", "outside segment", "other category",
 ])("the shortcut respects %s", reason => {
-    if (reason === "category disabled") Config.config.categorySelections = [{ name: "jumpscare", option: CategorySkipOption.Disabled }];
+    if (reason === "category disabled") Config.config.categorySelections = [{ name: "jumpscare" as Category, option: CategorySkipOption.Disabled }];
     if (reason === "global disable") Config.config.disableSkipping = true;
     if (reason === "whitelisted") contentState.channelWhitelisted = true;
     if (reason === "channel fetching") {
         Config.config.forceChannelCheck = true;
         (getChannelIDInfo as jest.Mock).mockReturnValue({ status: ChannelIDStatus.Fetching });
     }
-    if (reason === "hidden segment") contentState.sponsorTimes = [segment({ hidden: 3 })];
+    if (reason === "hidden segment") contentState.sponsorTimes = [segment({ hidden: SponsorHideType.Hidden })];
     if (reason === "outside segment") video.currentTime = 20;
-    if (reason === "other category") contentState.sponsorTimes = [segment({ category: "sponsor" })];
+    if (reason === "other category") contentState.sponsorTimes = [segment({ category: "sponsor" as Category })];
     fireSkip();
     expect(execute).not.toHaveBeenCalled();
     expect(toggleSkip).toHaveBeenCalledTimes(1);
 });
 
 test("overlapping jumpscares skip to the latest end", () => {
-    const later = segment({ UUID: "B", segment: [12, 30] });
+    const later = segment({ UUID: "B" as SponsorTime["UUID"], segment: [12, 30] });
     contentState.sponsorTimes.push(later);
     fireSkip();
     expect(execute).toHaveBeenCalledWith("skip/reskip", { segment: later, forceSeek: true });
