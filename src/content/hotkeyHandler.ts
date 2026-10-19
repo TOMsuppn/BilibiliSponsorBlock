@@ -1,6 +1,6 @@
 import Config from "../config";
 import { Keybind, keybindEquals } from "../config/config";
-import { ActionType, CategorySkipOption, ChannelIDStatus, SponsorTime } from "../types";
+import { ChannelIDStatus } from "../types";
 import Utils from "../utils";
 import { addCleanupListener } from "../utils/cleanup";
 import { getChannelIDInfo, getFrameRate, getVideo } from "../utils/video";
