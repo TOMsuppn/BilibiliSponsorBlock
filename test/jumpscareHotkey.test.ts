@@ -56,6 +56,7 @@ const fireSkip = () => {
 beforeAll(() => addHotkeyListener());
 beforeEach(() => {
     jest.clearAllMocks();
+    isExcluded.mockReturnValue(false);
     video.currentTime = 15;
     Config.config.categorySelections = [{ name: "jumpscare" as Category, option: CategorySkipOption.AutoSkip }];
     Config.config.disableSkipping = false;
